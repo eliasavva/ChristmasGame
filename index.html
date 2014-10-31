@@ -1,0 +1,247 @@
+<!doctype HTML>
+<html>
+
+<head>
+
+	<title>Christmas 2014</title>
+
+	<style type="text/css">
+
+	h1 {
+		text-align: center;
+	}
+
+	body {background-color: #00f99f}
+	
+	</style>
+
+	<meta charset="UTF-8"/>
+	<script language="javascript" src="javascripts/jquery.hotkeys.js" type="text/javascript"></script>
+	<script language="javascript" src="javascripts/key_status.js" type="text/javascript"></script>
+	<script src="javascripts/phaser.js"></script>
+</head>
+
+<body>
+
+	<h1>Christmas 2014</h1>
+
+	<canvas id="myCanvas" width="1700" height="100"
+	style="border:1px solid #000000;">
+</canvas>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(500, 1080, Phaser.AUTO, 'phaser-example', { preload: preload, create: create,update: update, render: render  });
+
+function preload() {
+	game.load.image('sky', "assets/pics/SKY.png");
+	game.load.image('snowflakes', 'assets/pics/snowflake.png');
+	game.load.image('santa', "assets/pics/santa.png")
+	game.load.image('present', "assets/pics/present.png")
+	game.load.image('coal', "assets/pics/coal.png")
+}
+
+var Sky ;
+var score = 0;
+var weight = 0
+var santa ;
+var present ;
+var velocity = 100;
+var max = 0;
+var bottom_emitter;
+var back_emitter;
+var update_interval = 4 * 60;
+var i = 0;
+
+function create() {
+	Sky = game.add.sprite(100, 2000, 'sky');
+	Sky.anchor.set(0.5);
+
+	back_emitter = game.add.emitter(game.world.centerX, -100, 9999);
+	back_emitter.makeParticles('snowflakes', [0, 1, 2, 3, 4, 5]);
+	back_emitter.maxParticleScale = 0.055;
+	back_emitter.minParticleScale = 0.005;
+	back_emitter.setYSpeed(300,300);
+	back_emitter.width = game.world.width *2;
+	back_emitter.minRotation = 0;
+	back_emitter.maxRotation = 40;
+	
+	game.physics.startSystem(Phaser.Physics.ARCADE);
+
+	present = game.add.sprite(Math.floor((Math.random()) * 400) + 1, 1080, 'present');
+	present.anchor.set(0.5);
+	present.scale.x = 0.05
+	present.scale.y = 0.05
+
+	coal = game.add.sprite(Math.floor((Math.random()) * 400) + 1, 1080, 'coal');
+	coal.anchor.set(0.5);
+	coal.scale.x = 0.05
+	coal.scale.y = 0.05
+
+	santa = game.add.sprite(game.world.centerX, game.world.centerY, 'santa');
+	santa.anchor.set(0.5);
+	santa.scale.x = 0.09
+	santa.scale.y = 0.09
+
+	game.physics.arcade.enable(santa,present, coal, Sky);
+	game.physics.enable([santa, present, coal, Sky]);
+
+	game.position = game.height
+	game.stage.backgroundColor =  '#000040'
+
+	changeWindDirection();
+
+	back_emitter.start(false, 14000, 0);
+	
+	present.animations.add('fall');
+	present.animations.play('fall', 15, true);
+
+	coal.animations.add('fall');
+	coal.animations.play('fall', 15, true);
+}
+
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+ctx.moveTo(500,500)
+
+function update() {
+	if (weight > 500) {gameover()}
+		Sky.body.gravity.y = (-velocity / 1000) 
+	
+	if (present.y < -present.width)
+	{ 
+		present.y = game.world.height;
+		present.x = Math.floor((Math.random() * 400))
+	}
+
+	if (coal.y < -coal.width)
+	{ 
+		coal.y = game.world.height;
+		coal.x = Math.floor((Math.random() * 400))
+	}
+
+	if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
+	{
+		santa.x -= 15;
+	}
+	else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
+	{
+		santa.x += 15;
+	}
+	else if (game.input.keyboard.isDown(Phaser.Keyboard.UP))
+	{
+		santa.y -= 15;
+	}
+	else if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+	{
+		santa.y += 15;
+	}
+
+	present.body.velocity.set(-velocity);
+	present.body.gravity.x = velocity *60
+
+	coal.body.velocity.set(-velocity);
+	coal.body.gravity.x = velocity *60
+
+	i++;
+
+	if (i === update_interval)
+	{
+		changeWindDirection();
+		update_interval = Math.floor(Math.random() * 20) * 60; 
+		i = 0;
+	}
+
+	if (collides(santa, coal)){handleCollisions(coal), velocity = velocity / 1.025, score -= 5, weight += 50}
+	if (collides(santa, present)){handleCollisions(present), velocity = velocity * 1.025, score += 10}
+
+		present.y -= 2;
+		coal.y -= 2;
+
+		ctx.clearRect(0, 0, c.width, c.height);
+		ctx.font = "50px arial"
+		ctx.fillStyle = "#FF0000";
+		ctx.fillText ("Score: " + score + "   Maximum weight is 500Kg    Your current weight is: " + weight, 100, 80 );
+		ctx.stroke()
+	}
+
+	function changeWindDirection() {
+		var multi = Math.floor((max + 200) / 4),
+		frag = (Math.floor(Math.random() * 100) - multi);
+		max = max + frag;
+
+		if (max > 200) max = 150;
+		if (max < -200) max = -150;
+
+		setXSpeed(back_emitter, max);
+	}
+
+	function setXSpeed(emitter, max) {
+		emitter.setXSpeed(max - 20, max);
+		emitter.forEachAlive(setParticleXSpeed, this, max);
+	}
+
+	function setParticleXSpeed(particle, max) {
+		particle.body.velocity.x = max - Math.floor(Math.random() * 30);
+	}
+
+	function render () {
+		game.debug.inputInfo(32, 32);
+	}
+
+	function objects(I) {
+		I = I || {};
+		I.active = true;
+		I.age = Math.floor(Math.random() * 128);
+		I.color = "#A2B";
+		I.x = CANVAS_WIDTH / 4 + Math.random() * CANVAS_WIDTH / 2;
+		I.y = 0;
+		I.xVelocity = 0
+		I.yVelocity = 2;
+		I.width = 32;
+		I.height = 32;
+
+		I.inBounds = function() {
+			return I.x >= 0 && I.x <= I.width &&
+			I.y >= 0 && I.y <= I.height;
+		};
+
+		I.sprite = Sprite("enemy");
+
+		I.draw = function() {
+			this.sprite.draw(canvas, this.x, this.y);
+		};
+
+		I.update = function() {
+			I.x += I.xVelocity;
+			I.y += I.yVelocity;
+			I.age++;
+			I.active = I.active && I.inBounds();
+		};
+	}
+
+	function collides(a, b) {
+		if( a.x < b.x + b.width &&
+			a.x + a.width > b.x &&
+			a.y < b.y + b.height &&
+			a.y + a.height > b.y) {return true}
+	}
+
+function handleCollisions(object) {
+	object.y = game.world.height;
+	object.x = Math.floor((Math.random() * 400))
+	;
+}
+
+function gameover() {
+	game.destroy()
+	ctx.clearRect(0, 0, c.width, c.height);
+	ctx.font = "50px arial"
+	ctx.fillStyle = "#FF0000";
+	ctx.fillText ("Game Over!!!!!!!!   Your final score was: " + score, 100, 80 );
+	ctx.stroke()
+}
+
+</script>
+</body>
+</html>
